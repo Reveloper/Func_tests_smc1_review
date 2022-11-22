@@ -1,0 +1,486 @@
+;; ======================================================
+;; =====================TEST CONSTS======================
+const int max_gl = 1000000000;
+const int gl = 88888888;
+const int d_gl = 911111112;
+int get_gas_limit() asm "GASLIMITSTEMP DROP";
+
+;; ======================================================
+;; ====================HELPER SECTION====================
+
+() prepare_storage() impure {
+    init_environment();
+    cell data = pack_data(get_pubkey(0), get_pubkey(1));
+    set_data(data);
+    set_now(get_valid_until(0) - 50);
+    set_gas_limit(gl);
+}
+
+() transfer_storage() impure {
+    set_data(get_prev_c4());
+    set_now(get_valid_until(0) - 50);
+    set_gas_limit(gl);
+}
+
+;; =====================================================
+;; ====================TESTS SECTION====================
+
+int __test_get_one_ext_message_data() { ;; id(2)
+    prepare_storage();
+    tuple stack = get_external_message(0, 0, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if(error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_get_coupled_ext_message_data() {   ;; id(4)
+    transfer_storage();
+    tuple stack = get_external_message(1, 0, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    check_message_correctness(actions, 3, 0);
+    return gas + d_gl;
+}
+
+;; ;; Start again, now lets add four one-sided messages and when co-sign them
+
+int __test_first_sign_1() { ;;id(6)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(0, 1, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if(error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_first_sign_2_() { ;;id(8)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(0, 2, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_first_sign_3_() { ;;id(10)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(0, 3, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_first_sign_4_() { ;;id(12)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(1, 4, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+;; co-sign
+
+int __test_first_cosign_4_() { ;; id(14)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(0, 4, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    check_message_correctness(actions, 3, 0);
+    return gas + d_gl;
+}
+
+int __test_second_cosign_2_() { ;; id(16)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(1, 2, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    check_message_correctness(actions, 3, 0);
+    return gas + d_gl;
+}
+
+;; now check that replays will not be accepted
+
+int __test_second_cosign_2_replay_() { ;;id(18)
+    transfer_storage();
+    tuple stack = get_external_message(1, 2, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_second_sign_4_replay_() { ;;id(20)
+    ;;prepare_storage();
+    transfer_storage();
+    tuple stack = get_external_message(1, 4, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    int gas  = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+;; now check that cosigns does not work after valid_until
+
+int __test_second_sign_1_too_late_() { ;;id(22)
+    prepare_storage();
+    set_now(get_valid_until(0) + 2);
+    tuple stack = get_external_message(1, 1, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    int gas  = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_second_sign_7_too_late_() { ;;id(24)
+    prepare_storage();
+    set_now(get_valid_until(0) + 8);
+    tuple stack = get_external_message(1, 7, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+
+}
+
+;; {- Now lets test incorrect requests -}
+;;
+int __test_wrong_sign_body_() { ;; id(26)
+    prepare_storage();
+    tuple stack = get_wrong_external_message(0);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_mixed_sign_body_() { ;;id(28)
+    prepare_storage();
+    tuple stack = get_wrong_external_message(1);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_wrong_key_body_() { ;;id(30)
+    prepare_storage();
+    tuple stack = get_wrong_external_message(2);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_no_msg_body_() { ;;id(32)
+    prepare_storage();
+    tuple stack = get_wrong_external_message(3);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_incorrect_request_body_() { ;;id(34)
+    prepare_storage();
+    tuple stack = get_wrong_external_message(4);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+
+int __test_incorrect_layout_body_() { ;;id(36)
+    prepare_storage();
+    set_now(get_valid_until(0) - 50);
+    tuple stack = get_wrong_external_message(5);
+    slice in_msg_body = stack.fourth();
+
+    int gas = invoke_method_expect_fail(recv_external, [in_msg_body]); ;; trying catch exception
+    throw_if(error::wrong_message_accept(), get_gas_limit() == max_gl); ;; check message didn't accept
+    return gas;
+}
+;; {- Start again and just send bunch of messages -}
+;; ;; #################################################
+;;
+int __test_mass_first_sign_1_() { ;;id(38)
+    prepare_storage();
+    set_now(get_valid_until(0) - 55);
+    tuple stack = get_external_message(0, 1, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_mass_first_sign_2_() { ;;id(40)
+    transfer_storage();
+    set_now(get_valid_until(0) - 55);
+    tuple stack = get_external_message(0, 2, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_mass_first_sign_3_() { ;;id(42)
+    transfer_storage();
+    set_now(get_valid_until(0) - 55);
+    tuple stack = get_external_message(0, 3, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_mass_first_sign_4_() { ;;id(44)
+    transfer_storage();
+    set_now(get_valid_until(0) - 55);
+    tuple stack = get_external_message(1, 4, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+
+int __test_mass_first_sign_5_() { ;;id(46)
+    transfer_storage();
+    set_now(get_valid_until(0) - 52);
+    tuple stack = get_external_message(1, 5, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+
+int __test_mass_first_sign_6_() { ;;id(48)
+    transfer_storage();
+    set_now(get_valid_until(0) - 52);
+    tuple stack = get_external_message(1, 6, 3, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_mass_first_sign_7_251_() { ;;id(50)
+    transfer_storage();
+    set_now(get_valid_until(0) - 52);
+    tuple stack = get_external_message(1, 7, 251, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+
+
+int __test_mass_first_sign_8_251_() { ;;id(52)
+    transfer_storage();
+    set_now(get_valid_until(0) - 49);
+    tuple stack = get_external_message(1, 8, 251, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+int __test_mass_first_sign_9_77_() { ;;id(54)
+    transfer_storage();
+    set_now(get_valid_until(0) - 49);
+    tuple stack = get_external_message(1, 9, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+    return gas + d_gl;
+}
+
+
+int __test_mass_first_cosign_9_77_() { ;;id(56)
+    transfer_storage();
+    set_now(get_valid_until(0));
+    tuple stack = get_external_message(0, 9, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    check_message_correctness(actions, 77, 0);
+
+    return gas + d_gl;
+}
+
+
+int __test_mass_second_cosign_10_77_() { ;;id(58)
+    transfer_storage();
+    set_now(get_valid_until(0));
+    tuple stack = get_external_message(1, 10, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+
+int __test_mass_second_cosign_11_77_() { ;;id(60)
+    transfer_storage();
+    set_now(get_valid_until(0));
+    tuple stack = get_external_message(1, 11, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+
+
+int __test_mass_second_sign_12_77_() { ;;id(62)
+    transfer_storage();
+    set_now(get_valid_until(0) + 11);
+    tuple stack = get_external_message(1, 12, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+
+int __test_mass_second_sign_13_77_() { ;;id(64)
+    transfer_storage();
+    set_now(get_valid_until(0) + 11);
+    tuple stack = get_external_message(1, 13, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+
+int __test_mass_second_sign_14_77_() { ;;id(66)
+    transfer_storage();
+    set_now(get_valid_until(0) + 11);
+    tuple stack = get_external_message(1, 14, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+
+int __test_mass_second_sign_15_77_() { ;;id(68)
+    transfer_storage();
+    set_now(get_valid_until(0) + 11);
+    tuple stack = get_external_message(1, 15, 77, 0);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+int __test_mass_second_sign_16_251_() { ;;id(70)
+    transfer_storage();
+    set_now(get_valid_until(0) + 11);
+    tuple stack = get_external_message(1, 16, 251, 1);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    throw_if (error::actions_unvalid(), get_actions().slice_bits() > 0 );
+
+    return gas + d_gl;
+}
+
+int __test_mass_first_cosign_16_251_() { ;;id(72)
+    transfer_storage();
+    set_now(get_valid_until(0) + 11);
+    tuple stack = get_external_message(0, 16, 251, 1);
+    slice in_msg_body = stack.fourth();
+
+    var (int gas, _) = invoke_method(recv_external, [in_msg_body]);
+    throw_if(error::wrong_message_accept(), get_gas_limit() != max_gl); ;; check message accepted
+    cell actions = begin_cell().store_slice(get_actions()).end_cell();
+    check_message_correctness(actions, 251, 1);
+
+    return gas + d_gl;
+}

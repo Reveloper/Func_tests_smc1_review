@@ -1,0 +1,704 @@
+_ __test_set_message_data() { ;;id(0)
+
+    set_now(1);
+    int op = 1;
+    int query_id = 2;
+    int key = 3;
+    int valid_until = 10;
+    int value = 5;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_set_message_data_2() { ;;id(2)
+
+    set_now(2);
+    int op = 1;
+    int query_id = 2;
+    int key = 3;
+    int valid_until = 12;
+    int value = 50;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+
+_ __test_set_message_data_3() { ;;id(4)
+
+    set_now(3);
+    int op = 1;
+    int query_id = 2;
+    int key = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+    int valid_until = 14;
+    int value = 5;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_get_key() { ;;id(6)
+
+    set_now(4);
+    set_data(get_prev_c4());
+
+    (_, var stack) = invoke_method(get_key, [3]);
+
+    check_get_method_result(stack, 12, 50);
+
+}
+
+_ __test_key_max() { ;;id(8)
+    set_now(5);
+    set_data(get_prev_c4());
+
+    (_, var stack) = invoke_method(get_key, [115792089237316195423570985008687907853269984665640564039457584007913129639935]);
+
+    check_get_method_result(stack, 14, 5);
+
+}
+
+_ __test_remove_outdated_data() { ;;id(10)
+
+    set_data(get_prev_c4());
+    set_now(13);
+
+    int op = 2;
+    int query_id = 2;
+
+    (_, var stack) = invoke_method(get_delete_message, [op, query_id]);
+
+}
+
+_ __test_check_cant_get_outdated_data() { ;;id(12)
+
+    set_data(get_prev_c4());
+    set_now(0);
+
+    invoke_method_expect_fail(get_key, [3]);
+}
+
+
+_ __test_check_can_get_not_outdated() { ;;id(14)
+    set_data(get_prev_c4());
+    set_now(0);
+
+    (_, var stack) = invoke_method(get_key, [115792089237316195423570985008687907853269984665640564039457584007913129639935]);
+    check_get_method_result (stack, 4749340378, 5);
+}
+
+
+_ __test_set_message_data_4() { ;; id(16)
+    set_data(get_prev_c4());
+    set_now(0);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 71;
+    int valid_until = 112;
+    int value = 11;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_set_message_data_same_valid_until() { ;;id(18)
+    set_data(get_prev_c4());
+    set_now(15);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 72;
+    int valid_until = 112;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+
+}
+
+
+_ __tests_set_message_data_same_value() { ;;id(20)
+    set_data(get_prev_c4());
+    set_now(16);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 74;
+    int valid_until = 112;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_set_message_data_update_valid_until_before() { ;;id(22)
+    set_data(get_prev_c4());
+    set_now(17);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 100;
+    int valid_until = 25;
+    int value = 0;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_set_message_data_update_valid_until() { ;;id(24)
+    set_data(get_prev_c4());
+    set_now(18);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 100;
+    int valid_until = 28;
+    int value = 0;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+;; {- We set outdate_threshold after non-updated but before updated values. Value should survive -}
+_ __test_remove_outdated2_data() { ;;id(26)
+    set_data(get_prev_c4());
+    set_now(26);
+
+    int op = 2;
+    int query_id = 2;
+
+    invoke_method(get_delete_message, [op, query_id]);
+
+}
+
+
+_ __test_check_can_get_not_outdated2_data() { ;;id(28)
+    set_data(get_prev_c4());
+    set_now(0);
+
+    (_, var stack) = invoke_method(get_key, [100]);
+
+    check_get_method_result(stack, 28, 0);
+}
+
+
+_ __test_set_message_data_update_valid_until_again() { ;;id(30)
+    set_data(get_prev_c4());
+    set_now(27);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 100;
+    int valid_until = 30;
+    int value = 0;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+{- This time we set outdate_threshold after both non-updated and updated values. It should be absent-}
+_ __test_remove_outdated3_data() { ;;id(32)
+    set_data(get_prev_c4());
+    set_now(35);
+
+    int op = 2;
+    int query_id = 2;
+
+    invoke_method(get_delete_message, [op, query_id]);
+}
+
+
+_ __test_check_can_not_not_outdated2_data() { ;;id(34)
+    set_data(get_prev_c4());
+    set_now(0);
+
+    invoke_method_expect_fail(get_key, [100]);
+}
+
+{- And now just add many keys and remove them -}
+_ __test_mass_key_addition1_p() { ;;id(36)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1023;
+    int valid_until = 1112;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+
+}
+
+_ __test_mass_key_addition2_p() { ;;id(38)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1024;
+    int valid_until = 113;
+    int value = 12;
+
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+
+}
+
+_ __test_mass_key_addition3_p() { ;;id(40)
+
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1025;
+    int valid_until = 114;
+    int value = 12;
+
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition4_p() { ;;id(42)
+
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1026;
+    int valid_until = 115;
+    int value = 12;
+
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition5_p() { ;;id(44)
+
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1027;
+    int valid_until = 116;
+    int value = 12;
+
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition6_p() { ;;id(46)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1028;
+    int valid_until = 117;
+    int value = 12;
+
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition7_p() { ;;id(48)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1029;
+    int valid_until = 118;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_mass_key_addition8_p() { ;;id(50)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1030;
+    int valid_until = 119;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_mass_key_addition9_p() { ;;id(52)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1031;
+    int valid_until = 122;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition10_p() { ;;id(54)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1032;
+    int valid_until = 123;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition11_p() { ;;id(66)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1023;
+    int valid_until = 1000;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition12_p() { ;;id(68)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1024;
+    int valid_until = 1001;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_mass_key_addition13_p() { ;;id(70)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1025;
+    int valid_until = 1002;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_mass_key_addition14_p() { ;;id(72)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1026;
+    int valid_until = 1003;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_mass_key_addition15_p() { ;;id(74)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1027;
+    int valid_until = 1004;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_mass_key_addition16_p() { ;;id(76)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1028;
+    int valid_until = 1005;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition17_p() { ;;id(78)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1029;
+    int valid_until = 1006;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition18_p() { ;;id(80)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1030;
+    int valid_until = 1007;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+_ __test_mass_key_addition19_p() { ;;id(82)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1031;
+    int valid_until = 1008;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_remove_outdated4_data() { ;;id(86)
+    set_data(get_prev_c4());
+    set_now(40);
+    ;; new key
+    int op = 2;
+    int query_id = 2;
+
+    invoke_method(get_delete_message, [op, query_id]);
+}
+
+_ __test_remove_outdated5_data() { ;;id(88)
+    set_data(get_prev_c4());
+    set_now(113);
+    ;; new key
+    int op = 2;
+    int query_id = 2;
+
+    invoke_method(get_delete_message, [op, query_id]);
+}
+
+_ __test_remove_outdated6_data() { ;;id(90)
+    set_data(get_prev_c4());
+    set_now(1200);
+    ;; new key
+    int op = 2;
+    int query_id = 2;
+
+    invoke_method(get_delete_message, [op, query_id]);
+}
+
+_ __test_add_outdated_but_not_removed_p() { ;;id(92)
+    set_data(get_prev_c4());
+    set_now(1021);
+    ;; new key
+    int op = 1;
+    int query_id = 2;
+    int key = 1032;
+    int valid_until = 1009;
+    int value = 12;
+
+    var tdata = get_message(op, query_id, key, valid_until, value);
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}
+
+
+_ __test_check_can_get_not_yet_removed_data() { ;;id(94)
+    set_data(get_prev_c4());
+    set_now(0);
+
+    (_, var stack) = invoke_method(get_key, [1032]);
+    check_get_method_result(stack, 1009, 12);
+
+}

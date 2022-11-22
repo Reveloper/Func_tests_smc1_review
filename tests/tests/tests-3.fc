@@ -1,0 +1,88 @@
+
+_ __test_manager_set_address() { ;;id(0)
+    set_now(0);
+    tuple tdata = get_set_message();
+    ;; message from manager must be accepted, but we need to check there is no outgoing messages
+
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+
+    ;; No out messages, just in case
+    slice actions_slice = get_actions();
+    throw_if(error::actions_unvalid(), actions_slice.slice_bits() != 0);
+    throw_if(error::actions_unvalid(), actions_slice.slice_refs() != 0);
+
+}
+
+_ __test_request_address_data() { ;;id(2)
+
+    set_data(get_prev_c4());
+    tuple tdata = get_set_message();
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+
+    slice actions_list = get_actions();
+    cell prev_action_list = actions_list~load_ref();
+    slice action = actions_list;
+    ;; action_send_msg#0ec3c86d mode:(## 8)
+    ;;   out_msg:^(MessageRelaxed Any) = OutAction;
+
+    int action_id = action~load_uint(32);  ;; load action id
+    throw_if(error::wrong_action_id(), action_id != 0x0ec3c86d);
+
+    int mode = action~load_uint(8); ;; send mode
+
+    ;; TON value attached to message should be incoming value minus processing fees
+    ;; allow +2 flag
+    throw_if(error::wrong_send_mode(), (mode & 253) != 64);
+
+    actions_list = prev_action_list.begin_parse();
+    ;; Only one message: that is action_list is empty
+    throw_if(error::actions_unvalid(), actions_list.slice_bits() > 0);
+
+    cell message = action~load_ref();
+    message.begin_parse();
+
+    [int ihr_disabled, int bounce, int bounced,
+     slice to_address,
+     int money,
+     int timestamps,
+     tuple init_state,
+     slice body]
+    = parse_int_message(message);
+
+    ;; with mode ==64 it gives us required behavior
+    throw_if_not(error::actions_unvalid(), money == 0);
+
+    ;; Check that send address is owner
+    throw_if_not(error::actions_unvalid(), equal_slices(to_address, get_example_address(2)));
+
+    ;; with body which contains address of A's sender followed by A's message body in reference (child cell)
+    (int op, int query_id, slice manager, slice memorized) =
+    ( body~load_uint(32), body~load_uint(64),
+      body~load_msg_addr(), body~load_msg_addr()
+    );
+
+    throw_if_not(error::data_incorrect(), op == 3);
+    throw_if_not(error::data_incorrect(), query_id == 7);
+    throw_if_not(error::data_incorrect(), equal_slices(manager, get_example_address(1)));
+    throw_if_not(error::data_incorrect(), equal_slices(memorized, get_example_address(2)));
+
+}
+
+ ;; * when address memorizer get any internal message which is not covered by description above it should throw with any exit code > 1.
+_ __test_unvalid_message_data() { ;;id(4)
+    tuple tdata = get_unvalid_message();
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+    invoke_method_expect_fail(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+}

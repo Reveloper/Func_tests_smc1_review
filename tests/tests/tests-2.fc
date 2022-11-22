@@ -1,0 +1,81 @@
+;; Main funtion tests
+
+_ __test_valid_data(){ ;;id(0)
+    set_data(get_c4());
+    var tdata = get_valid_message();
+
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+
+    ;; TODO: could it be, that contract send several messages, so we need to find out wich own is ours
+    ;; By now - just don't allow to send any more messages
+
+    slice actions_list = get_actions();
+    cell prev_action_list = actions_list~load_ref();
+    slice action = actions_list;
+    ;; action_send_msg#0ec3c86d mode:(## 8)
+    ;;   out_msg:^(MessageRelaxed Any) = OutAction;
+
+    int action_id = action~load_uint(32);  ;; load action id
+    throw_if(error::wrong_action_id(), action_id != 0x0ec3c86d);
+
+    int mode = action~load_uint(8); ;; send mode
+
+    ;; The Toncoin value attached to the message should be equal
+    ;; A's value minus fees related to processing (computational and message forwarding fees).
+    ;; allow +2 flag
+    throw_if(error::wrong_send_mode(), (mode & 253) != 64);
+
+    actions_list = prev_action_list.begin_parse();
+    ;; Only one message: that is action_list is empty
+    throw_if(error::actions_unvalid(), actions_list.slice_bits() > 0);
+
+    cell message = action~load_ref();
+    message.begin_parse();
+
+    [int ihr_disabled, int bounce, int bounced,
+     slice to_address,
+     int money,
+     int timestamps,
+     tuple init_state,
+     slice body]
+    = parse_int_message(message);
+
+    ;; with mode ==64 it gives us required behavior
+    throw_if_not(error::actions_unvalid(), money == 0);
+
+    ;; Check that send address is owner
+    throw_if_not(error::actions_unvalid(), equal_slices(to_address, get_example_address(1)));
+
+    ;; with body which contains address of A's sender followed by A's message body in reference (child cell)
+    slice from_address = body~load_msg_addr();
+    throw_if_not(error::data_incorrect(), equal_slices(from_address,  get_example_address(2)));
+
+    slice proxied_message_body = body~load_ref().begin_parse();
+    ;; Check data body
+    throw_if_not(error::data_incorrect(), equal_slices(proxied_message_body, get_valid_message_body()));
+}
+
+
+slice __test_message_from_owner_data(){ ;;id(2)
+
+    set_data(get_c4());
+    var tdata = get_valid_message();
+
+    int balance = tdata.first();
+    int msg_value = tdata.second();
+    cell in_msg_full = tdata.third();
+    slice in_msg_body = tdata.fourth();
+
+    invoke_method(recv_internal, [balance, msg_value, in_msg_full, in_msg_body]);
+    ;; check_success(exit_code); ;; message from owner must be accepted, but we need to check there is no outgoing messages
+
+    slice actions_slice = get_actions();
+    ;;actions_slice is not hollow
+    throw_if(error::actions_unvalid(), actions_slice.slice_bits() != 0);
+    throw_if(error::actions_unvalid(), actions_slice.slice_refs() != 0);
+}

@@ -1,0 +1,89 @@
+;; Main funtion tests
+_ __test_not_valid_data() { ;;id(0)
+    ;; data with <32 bit message
+    set_data(get_c4());
+    slice msg = get_not_valid_message().first();
+
+    ;;checkd fail with not valid message
+    invoke_method_expect_fail(recv_internal, [msg]);
+}
+
+
+;; Add 3 times by 10
+_ __test_add_10_data() { ;;id(2)
+    ;;set total in contract storage
+    set_data(get_c4());
+
+    slice msg = get_valid_message_32().first();
+    invoke_method(recv_internal, [msg]);
+}
+
+_ __test_second_add_10_data() { ;;id(4)
+
+    set_data(get_prev_c4());
+
+    slice msg = get_valid_message_32().first();
+    invoke_method(recv_internal, [msg]);
+}
+
+_ __test_third_add_10_data() { ;;id(6)
+    set_data(get_prev_c4());
+
+    slice msg = get_valid_message_32().first();
+    invoke_method(recv_internal, [msg]);
+}
+
+
+_ __test_check_get_total_30_data() { ;;id(10)
+    set_data(get_prev_c4());
+
+;;     slice msg = get_valid_message_32().first();
+    var (int gas, tuple stack) = invoke_method(get_total, []);
+    int total = first(stack);
+    if (total != 30) {
+        throw(error::data_incorrect());
+    }
+}
+;; ;; Check 64bits message
+
+_ __test_add_64_data() { ;;id(12)
+    set_data(get_prev_c4());
+
+    slice msg = get_valid_message_64().first();
+    invoke_method(recv_internal, [msg]);
+}
+
+_ __test_check_get_total_40_data() { ;;id(14)
+    set_data(get_prev_c4());
+
+    var (int gas, tuple stack) = invoke_method(get_total, []);
+    int total = first(stack);
+    if (total != 30 + 10) {
+        throw(error::data_incorrect());
+    }
+}
+
+;; Check 64bits total
+_ __test_add_max_32_data() { ;;id(16)
+    set_data(get_c4());
+
+    slice msg = get_valid_max_32_message().first();
+    invoke_method(recv_internal, [msg]);
+}
+
+_ __test_add_max_32_twice_data() { ;;id(18)
+    set_data(get_prev_c4());
+
+    slice msg = get_valid_max_32_message().first();
+    invoke_method(recv_internal, [msg]);
+}
+
+_ __test_check_64_max_data() { ;;id(20)
+    set_data(get_prev_c4());
+
+    var (int gas, tuple stack) = invoke_method(get_total, []);
+    int total = first(stack);
+    if (total != 4294967295 + 4294967295) {
+        throw(error::data_incorrect());
+    }
+}
